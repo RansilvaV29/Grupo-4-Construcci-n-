@@ -1,0 +1,86 @@
+# Docker Compose para deployment desde repositorios GitHub
+# Este archivo usa build context desde repos git públicos
+# Ideal para deployment en servidores remotos
+
+services:
+  db:
+    image: mariadb:11
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: ${DATABASE_NAME}
+      MARIADB_USER: ${DATABASE_USER}
+      MARIADB_PASSWORD: ${DATABASE_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+    ports:
+      - "3307:3306"
+    volumes:
+      - dbdata:/var/lib/mysql
+      - ./initdb:/docker-entrypoint-initdb.d:Z
+    healthcheck:
+      test: ["CMD-SHELL", "mariadb-admin ping -h 127.0.0.1 -uroot -p$${MARIADB_ROOT_PASSWORD} || exit 1"]
+      interval: 10s
+      timeout: 5s
+      start_period: 120s
+      retries: 60
+
+  backend:
+    build:
+      # Build desde el repositorio de GitHub (rama deploy)
+      context: https://github.com/esmora2/backend_exhibidor_dearte.git#deploy
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_HOST: db
+      DATABASE_PORT: 3306
+      DJANGO_STATIC_ROOT: /app/staticfiles
+      DJANGO_MEDIA_ROOT: /app/media
+      USE_S3_MEDIA: "${USE_S3_MEDIA}"
+      FRONTEND_URL: "${FRONTEND_URL:-http://localhost:3000}"
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    volumes:
+      - staticdata:/app/staticfiles
+      - mediadir:/app/media
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request,sys; urlopen=urllib.request.urlopen; sys.exit(0 if urlopen('http://127.0.0.1:8000/admin/', timeout=5) else 1)\""
+        ]
+      interval: 10s
+      timeout: 5s
+      start_period: 40s
+      retries: 30
+
+  frontend:
+    build:
+      # Build desde el repositorio de GitHub (rama deploy)
+      context: https://github.com/esmora2/frontend_exhibidor_dearte.git#deploy
+      dockerfile: Dockerfile
+      args:
+        # Variables de build-time para Next.js
+        - NEXT_PUBLIC_AWS_S3_CUSTOM_DOMAIN=${NEXT_PUBLIC_AWS_S3_CUSTOM_DOMAIN}
+        - NEXT_PUBLIC_AX_STORAGE_URL=${NEXT_PUBLIC_AX_STORAGE_URL}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NEXT_PUBLIC_BACKEND_URL: "/bapi"
+      NEXTAUTH_URL: "${NEXTAUTH_URL:-http://localhost:3000}"
+      NEXTAUTH_SECRET: "${NEXTAUTH_SECRET}"
+      # Variables runtime
+      NEXT_PUBLIC_AWS_S3_CUSTOM_DOMAIN: "${NEXT_PUBLIC_AWS_S3_CUSTOM_DOMAIN}"
+      NEXT_PUBLIC_AX_STORAGE_URL: "${NEXT_PUBLIC_AX_STORAGE_URL}"
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+
+volumes:
+  dbdata:
+  staticdata:
+  mediadir
