@@ -25,8 +25,8 @@ services:
 
   backend:
     build:
-      # Build desde el repositorio de GitHub (rama deploy)
-      context: https://github.com/esmora2/backend_exhibidor_dearte.git#deploy
+      # Build desde el repositorio de GitHub
+      context: https://github.com/Erickxse/dj_py_bck.git#main
       dockerfile: Dockerfile
     restart: unless-stopped
     env_file: .env
@@ -58,9 +58,9 @@ services:
 
   frontend:
     build:
-      # Build desde el repositorio de GitHub (rama deploy)
-      context: https://github.com/esmora2/frontend_exhibidor_dearte.git#deploy
-      dockerfile: Dockerfile
+      # Build desde el repositorio de GitHub
+      context: https://github.com/Erickxse/nx_js_ft.git#main
+      dockerfile: Dockerfile.remote
       args:
         # Variables de build-time para Next.js
         - NEXT_PUBLIC_AWS_S3_CUSTOM_DOMAIN=${NEXT_PUBLIC_AWS_S3_CUSTOM_DOMAIN}

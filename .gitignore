@@ -1,0 +1,40 @@
+# ==============================================================================
+# DEPLOYMENT REPOSITORY .gitignore
+# ==============================================================================
+
+# Environment variables - NUNCA subir al repositorio
+.env
+.env.local
+.env.*.local
+.env.production
+.env.staging
+
+# Docker volumes y datos persistentes
+dbdata/
+staticdata/
+mediadir/
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Backups temporales
+*.backup
+*.bak
+*.tmp
+backup_*.sql
+
+# Docker compose overrides locales
+docker-compose.override.yml
